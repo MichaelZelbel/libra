@@ -90,10 +90,19 @@ impl ValConfigs {
         autopay_signed: Option<Vec<SignedTransaction>>,
     ) -> Self {
         let owner_address = keys.child_0_owner.get_address();
+        
+        // Get the public key, exit in case of error because 
+        // without the public key we cannot create the config
 
-        let val_pubkey =
-            PublicKey::from_ed25519_public_bytes(&keys.child_2_val_network.get_public().to_bytes())
-                .unwrap();
+        let val_pubkey = match PublicKey::from_ed25519_public_bytes(&keys.child_2_val_network.get_public().to_bytes()) {
+            Ok (key) => key,
+            Err (e) => {
+                println!("CryptoMaterialError when getting public key: {}", &e.to_string());
+                exit(3001)
+            },
+        };
+           
+                 
 
         let val_addr_for_val_net =
             ValConfigs::make_unencrypted_addr(&val_ip_address, val_pubkey, NetworkId::Validator);
@@ -120,10 +129,18 @@ impl ValConfigs {
         // Create the list of VFN fullnode addresses. Usually only one
         // This is the VFN (validator fullnode) address information which the validator will use
         // to connect to its fullnode.
-        let vfn_pubkey = PublicKey::from_ed25519_public_bytes(
-            &keys.child_3_fullnode_network.get_public().to_bytes(),
-        )
-        .unwrap();
+
+        let vfn_pubkey = match PublicKey::from_ed25519_public_bytes(&keys.child_3_fullnode_network.get_public().to_bytes())
+            {
+            Ok (key) => key,
+            Err (e) => {
+                println!("CryptoMaterialError when getting public key of vfn: {}", &e.to_string());
+                exit(3002);
+                },
+
+             };
+
+
         let vfn_addr_obj =
             ValConfigs::make_unencrypted_addr(&vfn_ip_address, vfn_pubkey, NetworkId::Public);
 
