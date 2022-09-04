@@ -2916,7 +2916,6 @@ dependencies = [
  "memchr",
  "num-integer",
  "num-traits 0.2.15",
- "plotters",
  "rand 0.8.4",
  "regex",
  "regex-automata",
