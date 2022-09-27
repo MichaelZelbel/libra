@@ -12,7 +12,7 @@ use move_core_types::{
 use serde::{Deserialize, Serialize};
 
 /// Struct that represents a CurrencyInfo resource
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct FullnodeCounterResource {
     ///
     pub proofs_submitted_in_epoch: u64,

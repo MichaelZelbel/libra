@@ -22,7 +22,7 @@ pub struct AutoPayResource {
 }
 
 /// Struct that represents a view for AutoPay resource
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct AutoPayView {
     ///
     pub payments: Vec<PaymentView>,
@@ -31,7 +31,7 @@ pub struct AutoPayView {
 }
 
 /// Autopay instruction
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct PaymentView {
     ///
     pub uid: u64,
@@ -61,7 +61,7 @@ impl PaymentView {
 }
 
 /// Autopay instruction
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Payment {
     ///
     pub uid: u64,
