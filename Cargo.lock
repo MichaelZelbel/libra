@@ -1426,6 +1426,16 @@ dependencies = [
 
 [[package]]
 name = "dashmap"
+version = "4.0.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e77a43b28d0668df09411cb0bc9a8c2adc40f9a048afe863e05fd43251e8e39c"
+dependencies = [
+ "cfg-if 1.0.0",
+ "num_cpus",
+]
+
+[[package]]
+name = "dashmap"
 version = "5.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4c8858831f7781322e539ea39e72449c46b059638250c14344fec8d0aa6e539c"
@@ -1707,7 +1717,7 @@ dependencies = [
 
 [[package]]
 name = "diem-config"
-version = "5.1.3"
+version = "5.2.0"
 dependencies = [
  "bcs",
  "diem-crypto",
@@ -2279,7 +2289,7 @@ dependencies = [
 
 [[package]]
 name = "diem-management"
-version = "5.1.3"
+version = "5.2.0"
 dependencies = [
  "anyhow",
  "bcs",
@@ -2419,7 +2429,7 @@ dependencies = [
 
 [[package]]
 name = "diem-node"
-version = "5.1.3"
+version = "5.2.0"
 dependencies = [
  "backup-service",
  "bcs",
@@ -2510,8 +2520,11 @@ name = "diem-parallel-executor"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "arc-swap",
  "criterion",
+ "crossbeam",
  "crossbeam-queue",
+ "diem-infallible 0.1.0",
  "diem-workspace-hack 0.1.0",
  "mvhashmap",
  "num_cpus",
@@ -3053,6 +3066,7 @@ dependencies = [
  "diem-temppath",
  "diem-types",
  "diem-workspace-hack 0.1.0",
+ "executor-types",
  "itertools",
  "move-core-types",
  "num-derive",
@@ -3063,6 +3077,7 @@ dependencies = [
  "proptest-derive",
  "rand 0.8.4",
  "schemadb",
+ "scratchpad",
  "serde 1.0.137",
  "storage-interface",
  "thiserror",
@@ -4768,7 +4783,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6ab388864246d58a276e60e7569a833d9cc4cd75c66e5ca77c177dad38e59996"
 dependencies = [
  "ahash",
- "dashmap",
+ "dashmap 5.2.0",
  "hashbrown 0.12.1",
  "once_cell",
  "parking_lot 0.12.1",
@@ -6035,6 +6050,9 @@ dependencies = [
 name = "mvhashmap"
 version = "0.1.0"
 dependencies = [
+ "arc-swap",
+ "crossbeam",
+ "dashmap 4.0.2",
  "diem-workspace-hack 0.1.0",
  "num_cpus",
  "once_cell",
@@ -6477,7 +6495,7 @@ dependencies = [
 
 [[package]]
 name = "ol"
-version = "5.1.3"
+version = "5.2.0"
 dependencies = [
  "abscissa_core",
  "abscissa_tokio",
@@ -6582,6 +6600,61 @@ dependencies = [
 ]
 
 [[package]]
+name = "ol-smoke-test"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "backup-cli",
+ "base64 0.13.0",
+ "bcs",
+ "debug-interface",
+ "diem-config",
+ "diem-crypto",
+ "diem-events-fetcher",
+ "diem-experimental-framework-releases",
+ "diem-framework",
+ "diem-framework-releases",
+ "diem-genesis-tool",
+ "diem-global-constants",
+ "diem-infallible 0.1.0",
+ "diem-json-rpc",
+ "diem-json-rpc-types",
+ "diem-key-manager",
+ "diem-logger 0.1.0",
+ "diem-management",
+ "diem-operational-tool",
+ "diem-rest-client",
+ "diem-sdk",
+ "diem-secure-storage",
+ "diem-temppath",
+ "diem-time-service",
+ "diem-transaction-builder",
+ "diem-transaction-replay",
+ "diem-types",
+ "diem-validator-interface",
+ "diem-vault-client",
+ "diem-workspace-hack 0.1.0",
+ "diem-writeset-generator",
+ "forge",
+ "futures",
+ "generate-key",
+ "hex 0.4.3",
+ "move-command-line-common",
+ "move-ir-compiler",
+ "move-stdlib",
+ "once_cell",
+ "proptest",
+ "rand 0.8.4",
+ "regex",
+ "reqwest 0.11.10",
+ "serde_yaml",
+ "smoke-test",
+ "tokio 1.18.2",
+ "walkdir",
+]
+
+[[package]]
 name = "ol-types"
 version = "0.1.0"
 dependencies = [
@@ -6625,7 +6698,7 @@ dependencies = [
 
 [[package]]
 name = "onboard"
-version = "5.1.3"
+version = "5.2.0"
 dependencies = [
  "abscissa_core",
  "anyhow",
@@ -6650,7 +6723,7 @@ dependencies = [
  "serde_json",
  "thiserror",
  "toml",
- "tower 5.1.3",
+ "tower 5.2.0",
  "txs",
  "wait-timeout",
  "zip",
@@ -8075,29 +8148,6 @@ dependencies = [
  "rand 0.8.4",
  "rayon",
  "storage-interface",
-]
-
-[[package]]
-name = "scratchpad-benchmark"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "byteorder",
- "diem-config",
- "diem-crypto",
- "diem-genesis-tool",
- "diem-infallible 0.1.0",
- "diem-logger 0.1.0",
- "diem-types",
- "diem-workspace-hack 0.1.0",
- "diemdb",
- "executor-types",
- "itertools",
- "rand 0.8.4",
- "rayon",
- "scratchpad",
- "storage-interface",
- "structopt",
 ]
 
 [[package]]
@@ -9741,7 +9791,7 @@ dependencies = [
 
 [[package]]
 name = "tower"
-version = "5.1.3"
+version = "5.2.0"
 dependencies = [
  "abscissa_core",
  "ajson",
@@ -10007,7 +10057,7 @@ dependencies = [
 
 [[package]]
 name = "txs"
-version = "5.1.3"
+version = "5.2.0"
 dependencies = [
  "abscissa_core",
  "ajson",
@@ -10387,7 +10437,6 @@ dependencies = [
  "rand 0.8.4",
  "scratchpad",
  "storage-interface",
- "storage-service",
  "vm-genesis",
 ]
 

@@ -2281,7 +2281,12 @@ pub enum ScriptFunctionCall {
 
     MinerstateHelper {},
 
-    /// A validator (Alice) can delegate the authority for the operation of an upgrade to another validator (Bob). When Oracle delegation happens, effectively the consensus voting power of Alice, is added to Bob only for the effect of calculating the preference on electing a stdlib binary. Whatever binary Bob proposes, Alice will also propose without needing to be submitting transactions.
+    /// A validator (Alice) can delegate the authority for the operation of
+    /// an upgrade to another validator (Bob). When Oracle delegation happens,
+    /// effectively the consensus voting power of Alice, is added to Bob only
+    /// for the effect of calculating the preference on electing a stdlib binary.
+    /// Whatever binary Bob proposes, Alice will also propose without needing
+    /// to be submitting transactions.
     OlDelegateVote {
         dest: AccountAddress,
     },
@@ -2304,6 +2309,8 @@ pub enum ScriptFunctionCall {
 
     /// Alice can remove Bob as the delegate with this function.
     OlRemoveDelegation {},
+
+    OlRevokeVote {},
 
     /// # Summary
     /// Publishes a CRSN resource under `account` and opts the account in to
@@ -3057,6 +3064,10 @@ pub enum ScriptFunctionCall {
 
     SetWalletType {
         type_of: u8,
+    },
+
+    TestHarnessCreateUser {
+        new_account: AccountAddress,
     },
 
     /// # Summary
@@ -3825,6 +3836,7 @@ impl ScriptFunctionCall {
                 ram,
             } => encode_ol_reconfig_bulk_update_setup_script_function(alice, bob, carol, sha, ram),
             OlRemoveDelegation {} => encode_ol_remove_delegation_script_function(),
+            OlRevokeVote {} => encode_ol_revoke_vote_script_function(),
             OptInToCrsn { crsn_size } => encode_opt_in_to_crsn_script_function(crsn_size),
             PeerToPeerBySigners {
                 currency,
@@ -3957,6 +3969,9 @@ impl ScriptFunctionCall {
                 operator_account,
             ),
             SetWalletType { type_of } => encode_set_wallet_type_script_function(type_of),
+            TestHarnessCreateUser { new_account } => {
+                encode_test_harness_create_user_script_function(new_account)
+            }
             TieredMint {
                 coin_type,
                 sliding_nonce,
@@ -5266,7 +5281,12 @@ pub fn encode_minerstate_helper_script_function() -> TransactionPayload {
     ))
 }
 
-/// A validator (Alice) can delegate the authority for the operation of an upgrade to another validator (Bob). When Oracle delegation happens, effectively the consensus voting power of Alice, is added to Bob only for the effect of calculating the preference on electing a stdlib binary. Whatever binary Bob proposes, Alice will also propose without needing to be submitting transactions.
+/// A validator (Alice) can delegate the authority for the operation of
+/// an upgrade to another validator (Bob). When Oracle delegation happens,
+/// effectively the consensus voting power of Alice, is added to Bob only
+/// for the effect of calculating the preference on electing a stdlib binary.
+/// Whatever binary Bob proposes, Alice will also propose without needing
+/// to be submitting transactions.
 pub fn encode_ol_delegate_vote_script_function(dest: AccountAddress) -> TransactionPayload {
     TransactionPayload::ScriptFunction(ScriptFunction::new(
         ModuleId::new(
@@ -5336,6 +5356,18 @@ pub fn encode_ol_remove_delegation_script_function() -> TransactionPayload {
             ident_str!("OracleScripts").to_owned(),
         ),
         ident_str!("ol_remove_delegation").to_owned(),
+        vec![],
+        vec![],
+    ))
+}
+
+pub fn encode_ol_revoke_vote_script_function() -> TransactionPayload {
+    TransactionPayload::ScriptFunction(ScriptFunction::new(
+        ModuleId::new(
+            AccountAddress::new([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1]),
+            ident_str!("OracleScripts").to_owned(),
+        ),
+        ident_str!("ol_revoke_vote").to_owned(),
         vec![],
         vec![],
     ))
@@ -6357,6 +6389,20 @@ pub fn encode_set_wallet_type_script_function(type_of: u8) -> TransactionPayload
         ident_str!("set_wallet_type").to_owned(),
         vec![],
         vec![bcs::to_bytes(&type_of).unwrap()],
+    ))
+}
+
+pub fn encode_test_harness_create_user_script_function(
+    new_account: AccountAddress,
+) -> TransactionPayload {
+    TransactionPayload::ScriptFunction(ScriptFunction::new(
+        ModuleId::new(
+            AccountAddress::new([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1]),
+            ident_str!("DiemAccount").to_owned(),
+        ),
+        ident_str!("test_harness_create_user").to_owned(),
+        vec![],
+        vec![bcs::to_bytes(&new_account).unwrap()],
     ))
 }
 
@@ -8910,6 +8956,16 @@ fn decode_ol_remove_delegation_script_function(
     }
 }
 
+fn decode_ol_revoke_vote_script_function(
+    payload: &TransactionPayload,
+) -> Option<ScriptFunctionCall> {
+    if let TransactionPayload::ScriptFunction(_script) = payload {
+        Some(ScriptFunctionCall::OlRevokeVote {})
+    } else {
+        None
+    }
+}
+
 fn decode_opt_in_to_crsn_script_function(
     payload: &TransactionPayload,
 ) -> Option<ScriptFunctionCall> {
@@ -9197,6 +9253,18 @@ fn decode_set_wallet_type_script_function(
     if let TransactionPayload::ScriptFunction(script) = payload {
         Some(ScriptFunctionCall::SetWalletType {
             type_of: bcs::from_bytes(script.args().get(0)?).ok()?,
+        })
+    } else {
+        None
+    }
+}
+
+fn decode_test_harness_create_user_script_function(
+    payload: &TransactionPayload,
+) -> Option<ScriptFunctionCall> {
+    if let TransactionPayload::ScriptFunction(script) = payload {
+        Some(ScriptFunctionCall::TestHarnessCreateUser {
+            new_account: bcs::from_bytes(script.args().get(0)?).ok()?,
         })
     } else {
         None
@@ -9881,6 +9949,10 @@ static SCRIPT_FUNCTION_DECODER_MAP: once_cell::sync::Lazy<ScriptFunctionDecoderM
             Box::new(decode_ol_remove_delegation_script_function),
         );
         map.insert(
+            "OracleScriptsol_revoke_vote".to_string(),
+            Box::new(decode_ol_revoke_vote_script_function),
+        );
+        map.insert(
             "AccountAdministrationScriptsopt_in_to_crsn".to_string(),
             Box::new(decode_opt_in_to_crsn_script_function),
         );
@@ -9968,6 +10040,10 @@ static SCRIPT_FUNCTION_DECODER_MAP: once_cell::sync::Lazy<ScriptFunctionDecoderM
         map.insert(
             "WalletScriptsset_wallet_type".to_string(),
             Box::new(decode_set_wallet_type_script_function),
+        );
+        map.insert(
+            "DiemAccounttest_harness_create_user".to_string(),
+            Box::new(decode_test_harness_create_user_script_function),
         );
         map.insert(
             "TreasuryComplianceScriptstiered_mint".to_string(),

@@ -59,7 +59,6 @@ module EpochBoundary {
 
         let proposed_set = propose_new_set(vm, height_start, height_now);
         print(&800700);
-
         // Update all slow wallet limits
         DiemAccount::slow_wallet_epoch_drip(vm, Globals::get_unlock()); // todo
         print(&800800);
@@ -100,9 +99,9 @@ module EpochBoundary {
 
               // don't pay while we are in recovery mode, since that creates
               // a frontrunning opportunity
-              if (!RecoveryMode::is_recovery()){ 
+              // if (!RecoveryMode::is_recovery()){ 
                 FullnodeSubsidy::distribute_fullnode_subsidy(vm, addr, miner_subsidy);
-              }
+              // }
             };
 
             k = k + 1;
@@ -155,6 +154,7 @@ module EpochBoundary {
         while (i < Vector::length<address>(&previous_set)) {
             let addr = *Vector::borrow(&previous_set, i);
             let case = Cases::get_case(vm, addr, height_start, height_now);
+
             if (
               // we care about nodes that are performing consensus correctly, case 1 and 2.
               case < 3 &&
@@ -164,6 +164,7 @@ module EpochBoundary {
                 // also reset the jail counter for any successful unjails
                 Jail::remove_consecutive_fail(vm, addr);
             } else {
+              
               Jail::jail(vm, addr);
             };
             i = i+ 1;
@@ -191,15 +192,19 @@ module EpochBoundary {
           // can't be more than index of accounts
           i < Vector::length(&top_accounts) &&
           // the new proposed set can only only expand by 15%
-          Vector::length(&proposed_set) < len_proven_nodes + max_unproven_nodes &&
+          Vector::length(&proposed_set) < (len_proven_nodes + max_unproven_nodes) &&
           // Validator set can only be as big as the maximum set size
           Vector::length(&proposed_set) < Globals::get_max_validators_per_set()
         ) {
             let addr = *Vector::borrow(&top_accounts, i);
             let mined_last_epoch = TowerState::node_above_thresh(addr);
             let case = Cases::get_case(vm, addr, height_start, height_now);
+            print(&44444444);
             print(&addr);
             print(&case);
+            print(&Jail::is_jailed(addr));
+            print(&Audit::val_audit_passing(addr));
+            print(&Vouch::unrelated_buddies_above_thresh(addr));
 
             if (
                 // ignore proven nodes already on list
@@ -217,7 +222,8 @@ module EpochBoundary {
                 // has proven themselves in the previous round. If your
                 // vouchers fall out of the set, you may also fall out,
                 // and this chain reaction would cause instability in the network.
-                Vouch::unrelated_buddies_above_thresh(addr)            ) {
+                Vouch::unrelated_buddies_above_thresh(addr)
+              ) {
                 print(&99990901);
                 Vector::push_back(&mut proposed_set, addr);
             };
@@ -232,7 +238,7 @@ module EpochBoundary {
         // by proposals. They are probably online.
         if (Vector::length<address>(&proposed_set) <= 3) 
             proposed_set = 
-              Stats::get_sorted_vals_by_props(vm, Vector::length<address>(&proposed_set) / 2);
+              Stats::get_sorted_vals_by_props(vm, Vector::length<address>(&top_accounts) / 2);
 
         // If still failing...in extreme case if we cannot qualify anyone.
         // Don't change the validator set. we keep the same validator set. 
@@ -254,24 +260,27 @@ module EpochBoundary {
         outgoing_compliant: vector<address>,
         height_now: u64
     ) {
+        print(&800900100);
         // Reset Stats
         Stats::reconfig(vm, &proposed_set);
-
+        print(&800900101);
         // Migrate TowerState list from elegible.
         TowerState::reconfig(vm, &outgoing_compliant);
-
+        print(&800900102);
         // process community wallets
         DiemAccount::process_community_wallets(vm, DiemConfig::get_current_epoch());
-        
+        print(&800900103);
         // reset counters
         AutoPay::reconfig_reset_tick(vm);
-
+        print(&800900104);
         Epoch::reset_timer(vm, height_now);
-
+        print(&800900105);
         RecoveryMode::maybe_remove_debug_at_epoch(vm);
         // Reconfig should be the last event.
         // Reconfigure the network
-        DiemSystem::bulk_update_validators(vm, proposed_set);        
+        print(&800900106);
+        DiemSystem::bulk_update_validators(vm, proposed_set);
+        print(&800900107);    
     }
 
     // NOTE: this was previously in propose_new_set since it used the same loop.
@@ -279,14 +288,15 @@ module EpochBoundary {
     fun proof_of_burn(
       vm: &signer, nominal_subsidy_per: u64, proposed_set: &vector<address>
     ) {
+        print(&800800100);
         CoreAddresses::assert_vm(vm);
         DiemAccount::migrate_cumu_deposits(vm); // may need to populate data on a migration.
-
+        print(&800800101);
         Burn::reset_ratios(vm);
-
+        print(&800800102);
         // 50% of the current per validator reward
         let burn_value = nominal_subsidy_per / 2;
-
+        print(&800800103);
         let vals_to_burn = if (
           !Testnet::is_testnet() &&
           !StagingNet::is_staging_net() &&
@@ -296,18 +306,25 @@ module EpochBoundary {
           // positions full. Will make the burn amount much smaller over time.
           Vector::length<address>(proposed_set) > 90
         ) {
+          print(&800800104);
           &ValidatorUniverse::get_eligible_validators()
         } else {
+          print(&800800105);
           proposed_set
         };
-
-        // print(vals_to_burn);
+        print(&800800106);
+        print(vals_to_burn);
         let i = 0;
         while (i < Vector::length<address>(vals_to_burn)) {
           let addr = *Vector::borrow(vals_to_burn, i);
+          print(&addr);
+          print(&burn_value);
+
+
           Burn::epoch_start_burn(vm, addr, burn_value);
           i = i + 1;
         };
+        print(&800800107);
     }
 }
 }

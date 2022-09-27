@@ -9,8 +9,8 @@ script {
   use DiemFramework::Vouch;
   // use Std::Signer;
   // use DiemFramework::Debug::print;
-  fun main(_dr: signer, Alice: signer) {
-    Vouch::init(&Alice);
+  fun main(_dr: signer, alice: signer) {
+    Vouch::init(&alice);
     assert!(Vouch::is_init(@Alice), 7347001);
 
   }
@@ -25,14 +25,14 @@ script {
 
   fun main(_dr: signer, bob: signer) {
     assert!(Vouch::is_init(@Alice), 7347002);
-    Vouch::vouch_for(&bob, @Alice);
+    Vouch::revoke(&bob, @Alice);
 
     let includes = Vector::contains(
       &Vouch::get_buddies(@Alice), 
       &Signer::address_of(&bob)
     );
 
-    assert!(includes, 7357003);
+    assert!(!includes, 7357003);
   }
 }
 // check: EXECUTED
@@ -43,15 +43,15 @@ script {
   use Std::Vector;
   use Std::Signer;
 
-  fun main(_dr: signer, Carol_sig: signer) {
+  fun main(_dr: signer, carol_sig: signer) {
     assert!(Vouch::is_init(@Alice), 7347004);
 
-    Vouch::vouch_for(&Carol_sig, @Alice);
+    Vouch::revoke(&carol_sig, @Alice);
     let includes = Vector::contains(
-      &Vouch::get_buddies(@Alice), &Signer::address_of(&Carol_sig)
+      &Vouch::get_buddies(@Alice), &Signer::address_of(&carol_sig)
     );
 
-    assert!(includes, 7357005);
+    assert!(!includes, 7357005);
   }
 }
 // check: EXECUTED
@@ -64,15 +64,15 @@ script {
 
   fun main(_dr: signer, dave_sig: signer) {
     assert!(Vouch::is_init(@Alice), 7347006);
-    Vouch::vouch_for(&dave_sig, @Alice);
+    Vouch::revoke(&dave_sig, @Alice);
 
     let includes = Vector::contains(
       &Vouch::get_buddies(@Alice), 
       &Signer::address_of(&dave_sig)
     );
-    assert!(includes, 7357007);
+    assert!(!includes, 7357007);
     let unrelated = Vouch::unrelated_buddies(@Alice);
-    assert!(Vector::length(&unrelated) == 3, 7357008);
+    assert!(Vector::length(&unrelated) == 2, 7357008);
   }
 }
 // check: EXECUTED

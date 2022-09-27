@@ -34,6 +34,7 @@ before and after every transaction.
 -  [Function `initialize`](#0x1_DiemAccount_initialize)
 -  [Function `create_user_account_with_proof`](#0x1_DiemAccount_create_user_account_with_proof)
 -  [Function `create_user_account_with_coin`](#0x1_DiemAccount_create_user_account_with_coin)
+-  [Function `test_harness_create_user`](#0x1_DiemAccount_test_harness_create_user)
 -  [Function `create_validator_account_with_proof`](#0x1_DiemAccount_create_validator_account_with_proof)
 -  [Function `upgrade_validator_account_with_proof`](#0x1_DiemAccount_upgrade_validator_account_with_proof)
 -  [Function `has_published_account_limits`](#0x1_DiemAccount_has_published_account_limits)
@@ -64,6 +65,7 @@ before and after every transaction.
 -  [Function `create_diem_root_account`](#0x1_DiemAccount_create_diem_root_account)
 -  [Function `create_treasury_compliance_account`](#0x1_DiemAccount_create_treasury_compliance_account)
 -  [Function `create_designated_dealer`](#0x1_DiemAccount_create_designated_dealer)
+-  [Function `create_smoketest_end_user_account`](#0x1_DiemAccount_create_smoketest_end_user_account)
 -  [Function `create_parent_vasp_account`](#0x1_DiemAccount_create_parent_vasp_account)
 -  [Function `create_child_vasp_account`](#0x1_DiemAccount_create_child_vasp_account)
 -  [Function `create_signer`](#0x1_DiemAccount_create_signer)
@@ -1558,6 +1560,45 @@ Initialize this module. This is only callable from genesis.
 
 </details>
 
+<a name="0x1_DiemAccount_test_harness_create_user"></a>
+
+## Function `test_harness_create_user`
+
+
+
+<pre><code><b>public</b>(<b>script</b>) <b>fun</b> <a href="DiemAccount.md#0x1_DiemAccount_test_harness_create_user">test_harness_create_user</a>(sender: signer, new_account: <b>address</b>)
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>public</b>(<b>script</b>) <b>fun</b> <a href="DiemAccount.md#0x1_DiemAccount_test_harness_create_user">test_harness_create_user</a>(
+    sender: signer,
+    new_account: <b>address</b>,
+    // new_account_authkey_prefix: vector&lt;u8&gt;,
+    // value: u64,
+) <b>acquires</b> <a href="DiemAccount.md#0x1_DiemAccount_AccountOperationsCapability">AccountOperationsCapability</a> {
+    <a href="CoreAddresses.md#0x1_CoreAddresses_assert_diem_root">CoreAddresses::assert_diem_root</a>(&sender);
+    <b>assert</b>!(<a href="Testnet.md#0x1_Testnet_is_testnet">Testnet::is_testnet</a>(), <a href="DiemAccount.md#0x1_DiemAccount_ECANNOT_CREATE_AT_CORE_CODE">ECANNOT_CREATE_AT_CORE_CODE</a>);
+
+    <b>let</b> new_signer = <a href="DiemAccount.md#0x1_DiemAccount_create_signer">create_signer</a>(new_account);
+    <a href="Roles.md#0x1_Roles_new_user_role_with_proof">Roles::new_user_role_with_proof</a>(&new_signer);
+    <b>let</b> dummy_auth_key = x"4f52c9f095d4e46c0110c7360ae378a8";
+    <a href="DiemAccount.md#0x1_DiemAccount_make_account">make_account</a>(&new_signer, dummy_auth_key);
+    <a href="DiemAccount.md#0x1_DiemAccount_add_currencies_for_account">add_currencies_for_account</a>&lt;<a href="GAS.md#0x1_GAS">GAS</a>&gt;(&new_signer, <b>false</b>);
+
+    <b>let</b> new_signer = <a href="DiemAccount.md#0x1_DiemAccount_create_signer">create_signer</a>(new_account);
+    <a href="Ancestry.md#0x1_Ancestry_init">Ancestry::init</a>(&sender, &new_signer);
+}
+</code></pre>
+
+
+
+</details>
+
 <a name="0x1_DiemAccount_create_validator_account_with_proof"></a>
 
 ## Function `create_validator_account_with_proof`
@@ -1911,7 +1952,7 @@ Depending on the <code>is_withdrawal</code> flag passed in we determine whether 
 Record a payment of <code>to_deposit</code> from <code>payer</code> to <code>payee</code> with the attached <code>metadata</code>
 
 
-<pre><code><b>public</b>(<b>friend</b>) <b>fun</b> <a href="DiemAccount.md#0x1_DiemAccount_deposit">deposit</a>&lt;Token&gt;(payer: <b>address</b>, payee: <b>address</b>, to_deposit: <a href="Diem.md#0x1_Diem_Diem">Diem::Diem</a>&lt;Token&gt;, metadata: vector&lt;u8&gt;, metadata_signature: vector&lt;u8&gt;, dual_attestation: bool)
+<pre><code><b>public</b>(<b>friend</b>) <b>fun</b> <a href="DiemAccount.md#0x1_DiemAccount_deposit">deposit</a>&lt;Token&gt;(payer: <b>address</b>, payee: <b>address</b>, to_deposit: <a href="Diem.md#0x1_Diem_Diem">Diem::Diem</a>&lt;Token&gt;, metadata: vector&lt;u8&gt;, _metadata_signature: vector&lt;u8&gt;, _dual_attestation: bool)
 </code></pre>
 
 
@@ -1925,11 +1966,11 @@ Record a payment of <code>to_deposit</code> from <code>payer</code> to <code>pay
     payee: <b>address</b>,
     to_deposit: <a href="Diem.md#0x1_Diem">Diem</a>&lt;Token&gt;,
     metadata: vector&lt;u8&gt;,
-    metadata_signature: vector&lt;u8&gt;,
-    dual_attestation: bool,
-) <b>acquires</b> <a href="DiemAccount.md#0x1_DiemAccount">DiemAccount</a>, <a href="DiemAccount.md#0x1_DiemAccount_Balance">Balance</a>, <a href="DiemAccount.md#0x1_DiemAccount_AccountOperationsCapability">AccountOperationsCapability</a>, <a href="DiemAccount.md#0x1_DiemAccount_CumulativeDeposits">CumulativeDeposits</a> { //////// 0L ////////
-    <a href="DiemTimestamp.md#0x1_DiemTimestamp_assert_operating">DiemTimestamp::assert_operating</a>();
-    <a href="AccountFreezing.md#0x1_AccountFreezing_assert_not_frozen">AccountFreezing::assert_not_frozen</a>(payee);
+    _metadata_signature: vector&lt;u8&gt;,
+    _dual_attestation: bool,
+) <b>acquires</b> <a href="DiemAccount.md#0x1_DiemAccount">DiemAccount</a>, <a href="DiemAccount.md#0x1_DiemAccount_Balance">Balance</a>, <a href="DiemAccount.md#0x1_DiemAccount_CumulativeDeposits">CumulativeDeposits</a> { //////// 0L ////////
+    // <a href="DiemTimestamp.md#0x1_DiemTimestamp_assert_operating">DiemTimestamp::assert_operating</a>();
+    // <a href="AccountFreezing.md#0x1_AccountFreezing_assert_not_frozen">AccountFreezing::assert_not_frozen</a>(payee);
 
     // Check that the `to_deposit` coin is non-zero
     <b>let</b> deposit_value = <a href="Diem.md#0x1_Diem_value">Diem::value</a>(&to_deposit);
@@ -1943,26 +1984,25 @@ Record a payment of <code>to_deposit</code> from <code>payer</code> to <code>pay
     //     <a href="../../../../../../../DPN/releases/artifacts/current/build/MoveStdlib/docs/Errors.md#0x1_Errors_invalid_argument">Errors::invalid_argument</a>(<a href="DiemAccount.md#0x1_DiemAccount_EPAYEE_CANT_ACCEPT_CURRENCY_TYPE">EPAYEE_CANT_ACCEPT_CURRENCY_TYPE</a>)
     // );
 
-    <b>if</b> (dual_attestation) {
-        // Check that the payment complies <b>with</b> dual attestation rules
-        <a href="DualAttestation.md#0x1_DualAttestation_assert_payment_ok">DualAttestation::assert_payment_ok</a>&lt;Token&gt;(
-            payer, payee, deposit_value, <b>copy</b> metadata, metadata_signature
-        );
-    };
+    // <b>if</b> (dual_attestation) {
+    //     // Check that the payment complies <b>with</b> dual attestation rules
+    //     <a href="DualAttestation.md#0x1_DualAttestation_assert_payment_ok">DualAttestation::assert_payment_ok</a>&lt;Token&gt;(
+    //         payer, payee, deposit_value, <b>copy</b> metadata, metadata_signature
+    //     );
+    // };
 
-    // Ensure that this deposit is compliant <b>with</b> the account limits on
-    // this account.
-    <b>if</b> (<a href="DiemAccount.md#0x1_DiemAccount_should_track_limits_for_account">should_track_limits_for_account</a>&lt;Token&gt;(payer, payee, <b>false</b>)) {
-        <b>assert</b>!(
-            <a href="AccountLimits.md#0x1_AccountLimits_update_deposit_limits">AccountLimits::update_deposit_limits</a>&lt;Token&gt;(
-                deposit_value,
-                <a href="VASP.md#0x1_VASP_parent_address">VASP::parent_address</a>(payee),
-                &<b>borrow_global</b>&lt;<a href="DiemAccount.md#0x1_DiemAccount_AccountOperationsCapability">AccountOperationsCapability</a>&gt;(@DiemRoot).limits_cap
-            ),
-            <a href="../../../../../../../DPN/releases/artifacts/current/build/MoveStdlib/docs/Errors.md#0x1_Errors_limit_exceeded">Errors::limit_exceeded</a>(<a href="DiemAccount.md#0x1_DiemAccount_EDEPOSIT_EXCEEDS_LIMITS">EDEPOSIT_EXCEEDS_LIMITS</a>)
-        )
-    };
-
+    // // Ensure that this deposit is compliant <b>with</b> the account limits on
+    // // this account.
+    // <b>if</b> (<a href="DiemAccount.md#0x1_DiemAccount_should_track_limits_for_account">should_track_limits_for_account</a>&lt;Token&gt;(payer, payee, <b>false</b>)) {
+    //     <b>assert</b>!(
+    //         <a href="AccountLimits.md#0x1_AccountLimits_update_deposit_limits">AccountLimits::update_deposit_limits</a>&lt;Token&gt;(
+    //             deposit_value,
+    //             <a href="VASP.md#0x1_VASP_parent_address">VASP::parent_address</a>(payee),
+    //             &<b>borrow_global</b>&lt;<a href="DiemAccount.md#0x1_DiemAccount_AccountOperationsCapability">AccountOperationsCapability</a>&gt;(@DiemRoot).limits_cap
+    //         ),
+    //         <a href="../../../../../../../DPN/releases/artifacts/current/build/MoveStdlib/docs/Errors.md#0x1_Errors_limit_exceeded">Errors::limit_exceeded</a>(<a href="DiemAccount.md#0x1_DiemAccount_EDEPOSIT_EXCEEDS_LIMITS">EDEPOSIT_EXCEEDS_LIMITS</a>)
+    //     )
+    // };
     // Deposit the `to_deposit` coin
     <a href="Diem.md#0x1_Diem_deposit">Diem::deposit</a>(&<b>mut</b> <b>borrow_global_mut</b>&lt;<a href="DiemAccount.md#0x1_DiemAccount_Balance">Balance</a>&lt;Token&gt;&gt;(payee).coin, to_deposit);
 
@@ -2132,7 +2172,7 @@ Sender should be treasury compliance account and receiver authorized DD.
     designated_dealer_address: <b>address</b>,
     mint_amount: u64,
     tier_index: u64,
-) <b>acquires</b> <a href="DiemAccount.md#0x1_DiemAccount">DiemAccount</a>, <a href="DiemAccount.md#0x1_DiemAccount_Balance">Balance</a>, <a href="DiemAccount.md#0x1_DiemAccount_AccountOperationsCapability">AccountOperationsCapability</a>, <a href="DiemAccount.md#0x1_DiemAccount_CumulativeDeposits">CumulativeDeposits</a> { //////// 0L ////////
+) <b>acquires</b> <a href="DiemAccount.md#0x1_DiemAccount">DiemAccount</a>, <a href="DiemAccount.md#0x1_DiemAccount_Balance">Balance</a>, <a href="DiemAccount.md#0x1_DiemAccount_CumulativeDeposits">CumulativeDeposits</a> { //////// 0L ////////
     <a href="Roles.md#0x1_Roles_assert_treasury_compliance">Roles::assert_treasury_compliance</a>(tc_account);
     <b>let</b> coin = <a href="DesignatedDealer.md#0x1_DesignatedDealer_tiered_mint">DesignatedDealer::tiered_mint</a>&lt;Token&gt;(
         tc_account, mint_amount, designated_dealer_address, tier_index
@@ -2260,7 +2300,7 @@ The balance of designated dealer increases by <code>amount</code>.
     account: &signer,
     preburn_address: <b>address</b>,
     amount: u64,
-) <b>acquires</b> <a href="DiemAccount.md#0x1_DiemAccount">DiemAccount</a>, <a href="DiemAccount.md#0x1_DiemAccount_Balance">Balance</a>, <a href="DiemAccount.md#0x1_DiemAccount_AccountOperationsCapability">AccountOperationsCapability</a>, <a href="DiemAccount.md#0x1_DiemAccount_CumulativeDeposits">CumulativeDeposits</a> { //////// 0L ////////
+) <b>acquires</b> <a href="DiemAccount.md#0x1_DiemAccount">DiemAccount</a>, <a href="DiemAccount.md#0x1_DiemAccount_Balance">Balance</a>, <a href="DiemAccount.md#0x1_DiemAccount_CumulativeDeposits">CumulativeDeposits</a> { //////// 0L ////////
     <b>let</b> coin = <a href="Diem.md#0x1_Diem_cancel_burn">Diem::cancel_burn</a>&lt;Token&gt;(account, preburn_address, amount);
     // record both sender and recipient <b>as</b> `preburn_address`: the coins are moving from
     // `preburn_address`'s `Preburn` resource <b>to</b> its balance
@@ -3284,7 +3324,7 @@ As <code>payee</code> is also signer of the transaction, no metadata signature i
     payer_sig: &signer,
     payee: <b>address</b>,
     value: u64,
-) <b>acquires</b> <a href="DiemAccount.md#0x1_DiemAccount">DiemAccount</a>, <a href="DiemAccount.md#0x1_DiemAccount_Balance">Balance</a>, <a href="DiemAccount.md#0x1_DiemAccount_AccountOperationsCapability">AccountOperationsCapability</a>, <a href="DiemAccount.md#0x1_DiemAccount_CumulativeDeposits">CumulativeDeposits</a> { //////// 0L ////////
+) <b>acquires</b> <a href="DiemAccount.md#0x1_DiemAccount">DiemAccount</a>, <a href="DiemAccount.md#0x1_DiemAccount_Balance">Balance</a>, <a href="DiemAccount.md#0x1_DiemAccount_CumulativeDeposits">CumulativeDeposits</a> { //////// 0L ////////
     <b>let</b> payer_addr = <a href="../../../../../../../DPN/releases/artifacts/current/build/MoveStdlib/docs/Signer.md#0x1_Signer_address_of">Signer::address_of</a>(payer_sig);
     <b>let</b> account_balance = <b>borrow_global_mut</b>&lt;<a href="DiemAccount.md#0x1_DiemAccount_Balance">Balance</a>&lt;Token&gt;&gt;(payer_addr);
     <b>let</b> balance_coin = &<b>mut</b> account_balance.coin;
@@ -3337,7 +3377,7 @@ As <code>payee</code> is also signer of the transaction, no metadata signature i
     vm: &signer,
     owner_sig: &signer,
     oper: <b>address</b>,
-) <b>acquires</b> <a href="DiemAccount.md#0x1_DiemAccount">DiemAccount</a>, <a href="DiemAccount.md#0x1_DiemAccount_Balance">Balance</a>, <a href="DiemAccount.md#0x1_DiemAccount_AccountOperationsCapability">AccountOperationsCapability</a>, <a href="DiemAccount.md#0x1_DiemAccount_CumulativeDeposits">CumulativeDeposits</a> {
+) <b>acquires</b> <a href="DiemAccount.md#0x1_DiemAccount">DiemAccount</a>, <a href="DiemAccount.md#0x1_DiemAccount_Balance">Balance</a>, <a href="DiemAccount.md#0x1_DiemAccount_CumulativeDeposits">CumulativeDeposits</a> {
     <a href="CoreAddresses.md#0x1_CoreAddresses_assert_vm">CoreAddresses::assert_vm</a>(vm);
     <a href="DiemAccount.md#0x1_DiemAccount_onboarding_gas_transfer">onboarding_gas_transfer</a>&lt;<a href="GAS.md#0x1_GAS">GAS</a>&gt;(owner_sig, oper, <a href="DiemAccount.md#0x1_DiemAccount_BOOTSTRAP_COIN_VALUE">BOOTSTRAP_COIN_VALUE</a>);
 }
@@ -3744,6 +3784,7 @@ Creating an account at address 0x0 will abort as it is a reserved address for th
         &<b>mut</b> <b>borrow_global_mut</b>&lt;<a href="DiemAccount.md#0x1_DiemAccount_AccountOperationsCapability">AccountOperationsCapability</a>&gt;(@DiemRoot).creation_events,
         <a href="DiemAccount.md#0x1_DiemAccount_CreateAccountEvent">CreateAccountEvent</a> { created: new_account_addr, role_id: <a href="Roles.md#0x1_Roles_get_role_id">Roles::get_role_id</a>(new_account_addr) },
     );
+
     <b>move_to</b>(
         new_account,
         <a href="DiemAccount.md#0x1_DiemAccount">DiemAccount</a> {
@@ -3761,9 +3802,10 @@ Creating an account at address 0x0 will abort as it is a reserved address for th
             sequence_number: 0,
         }
     );
+
     //////// 0L ////////
-    // NOTE: <b>if</b> all accounts are <b>to</b> be slow set this
-    // <a href="DiemAccount.md#0x1_DiemAccount_set_slow">set_slow</a>(&new_account);
+    // Initialize <b>struct</b> for tracking payment receipts
+    <a href="Receipts.md#0x1_Receipts_init">Receipts::init</a>(new_account);
 }
 </code></pre>
 
@@ -3941,6 +3983,11 @@ AccountOperationsCapability, WriteSetManager, and finally makes the account.
     <a href="Roles.md#0x1_Roles_grant_diem_root_role">Roles::grant_diem_root_role</a>(&dr_account);
     <a href="SlidingNonce.md#0x1_SlidingNonce_publish">SlidingNonce::publish</a>(&dr_account);
 
+    //////// 0L ////////
+    // Give root account the <a href="Diem.md#0x1_Diem">Diem</a> Treasury compliance role, so that all the smoke tests can pass.
+    // <a href="Roles.md#0x1_Roles_grant_treasury_compliance_role">Roles::grant_treasury_compliance_role</a>(&dr_account, &dr_account);
+    // <a href="VASPDomain.md#0x1_VASPDomain_publish_vasp_domain_manager">VASPDomain::publish_vasp_domain_manager</a>(&new_account);
+
     <b>assert</b>!(
         !<b>exists</b>&lt;<a href="DiemAccount.md#0x1_DiemAccount_AccountOperationsCapability">AccountOperationsCapability</a>&gt;(@DiemRoot),
         <a href="../../../../../../../DPN/releases/artifacts/current/build/MoveStdlib/docs/Errors.md#0x1_Errors_already_published">Errors::already_published</a>(<a href="DiemAccount.md#0x1_DiemAccount_EACCOUNT_OPERATIONS_CAPABILITY">EACCOUNT_OPERATIONS_CAPABILITY</a>)
@@ -3962,7 +4009,7 @@ AccountOperationsCapability, WriteSetManager, and finally makes the account.
             upgrade_events: <a href="../../../../../../../DPN/releases/artifacts/current/build/MoveStdlib/docs/Event.md#0x1_Event_new_event_handle">Event::new_event_handle</a>&lt;<a href="DiemAccount.md#0x1_DiemAccount_AdminTransactionEvent">Self::AdminTransactionEvent</a>&gt;(&dr_account),
         }
     );
-    <a href="DiemAccount.md#0x1_DiemAccount_make_account">make_account</a>(&dr_account, <b>copy</b> auth_key_prefix) //////// 0L ////////
+    <a href="DiemAccount.md#0x1_DiemAccount_make_account">make_account</a>(&dr_account, <b>copy</b> auth_key_prefix); //////// 0L ////////
 }
 </code></pre>
 
@@ -4254,6 +4301,54 @@ Creates Preburn resource under account 'new_account_address'
 
 </details>
 
+<a name="0x1_DiemAccount_create_smoketest_end_user_account"></a>
+
+## Function `create_smoketest_end_user_account`
+
+
+
+<pre><code><b>public</b> <b>fun</b> <a href="DiemAccount.md#0x1_DiemAccount_create_smoketest_end_user_account">create_smoketest_end_user_account</a>&lt;Token&gt;(creator_account: &signer, new_account_address: <b>address</b>, auth_key_prefix: vector&lt;u8&gt;, _human_name: vector&lt;u8&gt;, add_all_currencies: bool)
+</code></pre>
+
+
+
+<details>
+<summary>Implementation</summary>
+
+
+<pre><code><b>public</b> <b>fun</b> <a href="DiemAccount.md#0x1_DiemAccount_create_smoketest_end_user_account">create_smoketest_end_user_account</a>&lt;Token&gt;(
+    creator_account: &signer,  // TreasuryCompliance
+    new_account_address: <b>address</b>,
+    auth_key_prefix: vector&lt;u8&gt;,
+    _human_name: vector&lt;u8&gt;,
+    add_all_currencies: bool
+) <b>acquires</b> <a href="DiemAccount.md#0x1_DiemAccount_AccountOperationsCapability">AccountOperationsCapability</a> {
+    <a href="Testnet.md#0x1_Testnet_is_testnet">Testnet::is_testnet</a>();
+    <a href="CoreAddresses.md#0x1_CoreAddresses_assert_diem_root">CoreAddresses::assert_diem_root</a>(creator_account);
+    <b>let</b> new_account = <a href="DiemAccount.md#0x1_DiemAccount_create_signer">create_signer</a>(new_account_address);
+    print(&400001);
+    // <a href="Roles.md#0x1_Roles_new_parent_vasp_role">Roles::new_parent_vasp_role</a>(creator_account, &new_account);
+    // <a href="VASP.md#0x1_VASP_publish_parent_vasp_credential">VASP::publish_parent_vasp_credential</a>(&new_account, creator_account);
+    // <a href="DualAttestation.md#0x1_DualAttestation_publish_credential">DualAttestation::publish_credential</a>(&new_account, creator_account, human_name);
+    // <a href="VASPDomain.md#0x1_VASPDomain_publish_vasp_domains">VASPDomain::publish_vasp_domains</a>(&new_account);
+    <a href="Roles.md#0x1_Roles_new_user_role_with_proof">Roles::new_user_role_with_proof</a>(&new_account);
+    <a href="DiemAccount.md#0x1_DiemAccount_make_account">make_account</a>(&new_account, auth_key_prefix);
+    print(&400002);
+    <a href="DiemAccount.md#0x1_DiemAccount_add_currencies_for_account">add_currencies_for_account</a>&lt;Token&gt;(&new_account, add_all_currencies);
+    print(&400003);
+
+    // testnet_root_fund_account
+    // <b>spec</b> {
+    //     <b>assert</b> <b>exists</b>&lt;<a href="VASPDomain.md#0x1_VASPDomain_VASPDomains">VASPDomain::VASPDomains</a>&gt;(<a href="../../../../../../../DPN/releases/artifacts/current/build/MoveStdlib/docs/Signer.md#0x1_Signer_address_of">Signer::address_of</a>(new_account));
+    //     <b>assert</b> <a href="Roles.md#0x1_Roles_spec_has_treasury_compliance_role_addr">Roles::spec_has_treasury_compliance_role_addr</a>(<a href="../../../../../../../DPN/releases/artifacts/current/build/MoveStdlib/docs/Signer.md#0x1_Signer_address_of">Signer::address_of</a>(creator_account));
+    // }
+}
+</code></pre>
+
+
+
+</details>
+
 <a name="0x1_DiemAccount_create_parent_vasp_account"></a>
 
 ## Function `create_parent_vasp_account`
@@ -4263,7 +4358,7 @@ Create an account with the ParentVASP role at <code>new_account_address</code> w
 all available currencies in the system will also be added.
 
 
-<pre><code><b>public</b> <b>fun</b> <a href="DiemAccount.md#0x1_DiemAccount_create_parent_vasp_account">create_parent_vasp_account</a>&lt;Token&gt;(creator_account: &signer, new_account_address: <b>address</b>, auth_key_prefix: vector&lt;u8&gt;, human_name: vector&lt;u8&gt;, add_all_currencies: bool)
+<pre><code><b>public</b> <b>fun</b> <a href="DiemAccount.md#0x1_DiemAccount_create_parent_vasp_account">create_parent_vasp_account</a>&lt;Token&gt;(creator_account: &signer, new_account_address: <b>address</b>, auth_key_prefix: vector&lt;u8&gt;, _human_name: vector&lt;u8&gt;, add_all_currencies: bool)
 </code></pre>
 
 
@@ -4276,21 +4371,28 @@ all available currencies in the system will also be added.
     creator_account: &signer,  // TreasuryCompliance
     new_account_address: <b>address</b>,
     auth_key_prefix: vector&lt;u8&gt;,
-    human_name: vector&lt;u8&gt;,
+    _human_name: vector&lt;u8&gt;,
     add_all_currencies: bool
 ) <b>acquires</b> <a href="DiemAccount.md#0x1_DiemAccount_AccountOperationsCapability">AccountOperationsCapability</a> {
-    <a href="Roles.md#0x1_Roles_assert_treasury_compliance">Roles::assert_treasury_compliance</a>(creator_account);
+    <a href="Testnet.md#0x1_Testnet_is_testnet">Testnet::is_testnet</a>();
+    <a href="CoreAddresses.md#0x1_CoreAddresses_assert_diem_root">CoreAddresses::assert_diem_root</a>(creator_account);
     <b>let</b> new_account = <a href="DiemAccount.md#0x1_DiemAccount_create_signer">create_signer</a>(new_account_address);
-    <a href="Roles.md#0x1_Roles_new_parent_vasp_role">Roles::new_parent_vasp_role</a>(creator_account, &new_account);
-    <a href="VASP.md#0x1_VASP_publish_parent_vasp_credential">VASP::publish_parent_vasp_credential</a>(&new_account, creator_account);
-    <a href="DualAttestation.md#0x1_DualAttestation_publish_credential">DualAttestation::publish_credential</a>(&new_account, creator_account, human_name);
-    <a href="VASPDomain.md#0x1_VASPDomain_publish_vasp_domains">VASPDomain::publish_vasp_domains</a>(&new_account);
+    print(&400001);
+    // <a href="Roles.md#0x1_Roles_new_parent_vasp_role">Roles::new_parent_vasp_role</a>(creator_account, &new_account);
+    // <a href="VASP.md#0x1_VASP_publish_parent_vasp_credential">VASP::publish_parent_vasp_credential</a>(&new_account, creator_account);
+    // <a href="DualAttestation.md#0x1_DualAttestation_publish_credential">DualAttestation::publish_credential</a>(&new_account, creator_account, human_name);
+    // <a href="VASPDomain.md#0x1_VASPDomain_publish_vasp_domains">VASPDomain::publish_vasp_domains</a>(&new_account);
+    <a href="Roles.md#0x1_Roles_new_user_role_with_proof">Roles::new_user_role_with_proof</a>(&new_account);
     <a href="DiemAccount.md#0x1_DiemAccount_make_account">make_account</a>(&new_account, auth_key_prefix);
+    print(&400002);
     <a href="DiemAccount.md#0x1_DiemAccount_add_currencies_for_account">add_currencies_for_account</a>&lt;Token&gt;(&new_account, add_all_currencies);
-    <b>spec</b> {
-        <b>assert</b> <b>exists</b>&lt;<a href="VASPDomain.md#0x1_VASPDomain_VASPDomains">VASPDomain::VASPDomains</a>&gt;(<a href="../../../../../../../DPN/releases/artifacts/current/build/MoveStdlib/docs/Signer.md#0x1_Signer_address_of">Signer::address_of</a>(new_account));
-        <b>assert</b> <a href="Roles.md#0x1_Roles_spec_has_treasury_compliance_role_addr">Roles::spec_has_treasury_compliance_role_addr</a>(<a href="../../../../../../../DPN/releases/artifacts/current/build/MoveStdlib/docs/Signer.md#0x1_Signer_address_of">Signer::address_of</a>(creator_account));
-    }
+    print(&400003);
+
+    // testnet_root_fund_account
+    // <b>spec</b> {
+    //     <b>assert</b> <b>exists</b>&lt;<a href="VASPDomain.md#0x1_VASPDomain_VASPDomains">VASPDomain::VASPDomains</a>&gt;(<a href="../../../../../../../DPN/releases/artifacts/current/build/MoveStdlib/docs/Signer.md#0x1_Signer_address_of">Signer::address_of</a>(new_account));
+    //     <b>assert</b> <a href="Roles.md#0x1_Roles_spec_has_treasury_compliance_role_addr">Roles::spec_has_treasury_compliance_role_addr</a>(<a href="../../../../../../../DPN/releases/artifacts/current/build/MoveStdlib/docs/Signer.md#0x1_Signer_address_of">Signer::address_of</a>(creator_account));
+    // }
 }
 </code></pre>
 
@@ -6304,9 +6406,8 @@ Create a Validator Operator account
     to_deposit: <a href="Diem.md#0x1_Diem">Diem</a>&lt;Token&gt;,
     metadata: vector&lt;u8&gt;,
     metadata_signature: vector&lt;u8&gt;
-) <b>acquires</b> <a href="DiemAccount.md#0x1_DiemAccount">DiemAccount</a>, <a href="DiemAccount.md#0x1_DiemAccount_Balance">Balance</a>, <a href="DiemAccount.md#0x1_DiemAccount_AccountOperationsCapability">AccountOperationsCapability</a>, <a href="DiemAccount.md#0x1_DiemAccount_CumulativeDeposits">CumulativeDeposits</a> { //////// 0L ////////
-    <b>let</b> sender = <a href="../../../../../../../DPN/releases/artifacts/current/build/MoveStdlib/docs/Signer.md#0x1_Signer_address_of">Signer::address_of</a>(vm);
-    <b>assert</b>!(sender == @DiemRoot, 4010);
+) <b>acquires</b> <a href="DiemAccount.md#0x1_DiemAccount">DiemAccount</a>, <a href="DiemAccount.md#0x1_DiemAccount_Balance">Balance</a>, <a href="DiemAccount.md#0x1_DiemAccount_CumulativeDeposits">CumulativeDeposits</a> { //////// 0L ////////
+    <a href="CoreAddresses.md#0x1_CoreAddresses_assert_diem_root">CoreAddresses::assert_diem_root</a>(vm);
     <a href="DiemAccount.md#0x1_DiemAccount_deposit">deposit</a>(
         @DiemRoot,
         payee,

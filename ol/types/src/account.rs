@@ -6,7 +6,7 @@ use diem_crypto::x25519::PublicKey;
 use diem_global_constants::{DEFAULT_PUB_PORT, DEFAULT_VAL_PORT, DEFAULT_VFN_PORT};
 use diem_types::{
     account_address::AccountAddress,
-    network_address::{NetworkAddress},
+    network_address::{{NetworkAddress}},
     transaction::{SignedTransaction, TransactionPayload},
 };
 
@@ -151,6 +151,7 @@ impl ValConfigs {
         let buf = serde_json::to_string(&self)?;
         file.write(&buf.as_bytes())?;
         println!("account manifest created, file saved to: {:?}", json_path);
+        Ok(())
         Ok(())
     }
 

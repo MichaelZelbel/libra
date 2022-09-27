@@ -10,6 +10,7 @@ module DiemFramework::DiemAccount {
     friend DiemFramework::AccountAdministrationScripts;
     friend DiemFramework::MakeWhole;
     friend DiemFramework::MigrateJail;
+    friend DiemFramework::Genesis;
 
     use DiemFramework::AccountFreezing;
     use DiemFramework::CoreAddresses;
@@ -53,6 +54,7 @@ module DiemFramework::DiemAccount {
     use DiemFramework::Vouch;
     use DiemFramework::Debug::print;
     use DiemFramework::Jail;
+    use DiemFramework::Testnet;
 
     /// An `address` is a Diem Account iff it has a published DiemAccount resource.
     struct DiemAccount has key {
@@ -545,6 +547,28 @@ module DiemFramework::DiemAccount {
     }
 
     /////// 0L ////////
+    // WARNING THIS IS A PUBLIC SCRIPT ONLY INTENDED FOR TESTING.
+    // Function code: 01
+    public(script) fun test_harness_create_user(
+        sender: signer,
+        new_account: address,
+        // new_account_authkey_prefix: vector<u8>,
+        // value: u64,
+    ) acquires AccountOperationsCapability {
+        CoreAddresses::assert_diem_root(&sender);
+        assert!(Testnet::is_testnet(), ECANNOT_CREATE_AT_CORE_CODE);
+
+        let new_signer = create_signer(new_account);
+        Roles::new_user_role_with_proof(&new_signer);
+        let dummy_auth_key = x"4f52c9f095d4e46c0110c7360ae378a8";
+        make_account(&new_signer, dummy_auth_key);
+        add_currencies_for_account<GAS>(&new_signer, false);
+
+        let new_signer = create_signer(new_account);
+        Ancestry::init(&sender, &new_signer);
+    }
+
+    /////// 0L ////////
     // spec fun create_user_account {
     //     include AddCurrencyForAccountEnsures<Token>{addr: new_account_address};
     // }
@@ -821,11 +845,11 @@ module DiemFramework::DiemAccount {
         payee: address,
         to_deposit: Diem<Token>,
         metadata: vector<u8>,
-        metadata_signature: vector<u8>,
-        dual_attestation: bool,
-    ) acquires DiemAccount, Balance, AccountOperationsCapability, CumulativeDeposits { //////// 0L ////////
-        DiemTimestamp::assert_operating();
-        AccountFreezing::assert_not_frozen(payee);
+        _metadata_signature: vector<u8>,
+        _dual_attestation: bool,
+    ) acquires DiemAccount, Balance, CumulativeDeposits { //////// 0L ////////
+        // DiemTimestamp::assert_operating();
+        // AccountFreezing::assert_not_frozen(payee);
 
         // Check that the `to_deposit` coin is non-zero
         let deposit_value = Diem::value(&to_deposit);
@@ -839,26 +863,25 @@ module DiemFramework::DiemAccount {
         //     Errors::invalid_argument(EPAYEE_CANT_ACCEPT_CURRENCY_TYPE)
         // );
 
-        if (dual_attestation) {
-            // Check that the payment complies with dual attestation rules
-            DualAttestation::assert_payment_ok<Token>(
-                payer, payee, deposit_value, copy metadata, metadata_signature
-            );
-        };
+        // if (dual_attestation) {
+        //     // Check that the payment complies with dual attestation rules
+        //     DualAttestation::assert_payment_ok<Token>(
+        //         payer, payee, deposit_value, copy metadata, metadata_signature
+        //     );
+        // };
 
-        // Ensure that this deposit is compliant with the account limits on
-        // this account.
-        if (should_track_limits_for_account<Token>(payer, payee, false)) {
-            assert!(
-                AccountLimits::update_deposit_limits<Token>(
-                    deposit_value,
-                    VASP::parent_address(payee),
-                    &borrow_global<AccountOperationsCapability>(@DiemRoot).limits_cap
-                ),
-                Errors::limit_exceeded(EDEPOSIT_EXCEEDS_LIMITS)
-            )
-        };
-
+        // // Ensure that this deposit is compliant with the account limits on
+        // // this account.
+        // if (should_track_limits_for_account<Token>(payer, payee, false)) {
+        //     assert!(
+        //         AccountLimits::update_deposit_limits<Token>(
+        //             deposit_value,
+        //             VASP::parent_address(payee),
+        //             &borrow_global<AccountOperationsCapability>(@DiemRoot).limits_cap
+        //         ),
+        //         Errors::limit_exceeded(EDEPOSIT_EXCEEDS_LIMITS)
+        //     )
+        // };
         // Deposit the `to_deposit` coin
         Diem::deposit(&mut borrow_global_mut<Balance<Token>>(payee).coin, to_deposit);
 
@@ -963,7 +986,7 @@ module DiemFramework::DiemAccount {
         designated_dealer_address: address,
         mint_amount: u64,
         tier_index: u64,
-    ) acquires DiemAccount, Balance, AccountOperationsCapability, CumulativeDeposits { //////// 0L ////////
+    ) acquires DiemAccount, Balance, CumulativeDeposits { //////// 0L ////////
         Roles::assert_treasury_compliance(tc_account);
         let coin = DesignatedDealer::tiered_mint<Token>(
             tc_account, mint_amount, designated_dealer_address, tier_index
@@ -1027,7 +1050,7 @@ module DiemFramework::DiemAccount {
         account: &signer,
         preburn_address: address,
         amount: u64,
-    ) acquires DiemAccount, Balance, AccountOperationsCapability, CumulativeDeposits { //////// 0L ////////
+    ) acquires DiemAccount, Balance, CumulativeDeposits { //////// 0L ////////
         let coin = Diem::cancel_burn<Token>(account, preburn_address, amount);
         // record both sender and recipient as `preburn_address`: the coins are moving from
         // `preburn_address`'s `Preburn` resource to its balance
@@ -1634,7 +1657,7 @@ module DiemFramework::DiemAccount {
         payer_sig: &signer,
         payee: address,
         value: u64, 
-    ) acquires DiemAccount, Balance, AccountOperationsCapability, CumulativeDeposits { //////// 0L ////////
+    ) acquires DiemAccount, Balance, CumulativeDeposits { //////// 0L ////////
         let payer_addr = Signer::address_of(payer_sig);
         let account_balance = borrow_global_mut<Balance<Token>>(payer_addr);
         let balance_coin = &mut account_balance.coin;
@@ -1668,7 +1691,7 @@ module DiemFramework::DiemAccount {
         vm: &signer,
         owner_sig: &signer,
         oper: address,
-    ) acquires DiemAccount, Balance, AccountOperationsCapability, CumulativeDeposits {
+    ) acquires DiemAccount, Balance, CumulativeDeposits {
         CoreAddresses::assert_vm(vm);
         onboarding_gas_transfer<GAS>(owner_sig, oper, BOOTSTRAP_COIN_VALUE);
     }
@@ -1852,6 +1875,7 @@ module DiemFramework::DiemAccount {
             &mut borrow_global_mut<AccountOperationsCapability>(@DiemRoot).creation_events,
             CreateAccountEvent { created: new_account_addr, role_id: Roles::get_role_id(new_account_addr) },
         );
+
         move_to(
             new_account,
             DiemAccount {
@@ -1869,9 +1893,10 @@ module DiemFramework::DiemAccount {
                 sequence_number: 0,
             }
         );
+        
         //////// 0L ////////
-        // NOTE: if all accounts are to be slow set this
-        // set_slow(&new_account);        
+        // Initialize struct for tracking payment receipts
+        Receipts::init(new_account);    
     }
     spec make_account {
         pragma opaque;
@@ -1966,6 +1991,11 @@ module DiemFramework::DiemAccount {
         Roles::grant_diem_root_role(&dr_account);
         SlidingNonce::publish(&dr_account);
 
+        //////// 0L ////////
+        // Give root account the Diem Treasury compliance role, so that all the smoke tests can pass.
+        // Roles::grant_treasury_compliance_role(&dr_account, &dr_account);
+        // VASPDomain::publish_vasp_domain_manager(&new_account);
+
         assert!(
             !exists<AccountOperationsCapability>(@DiemRoot),
             Errors::already_published(EACCOUNT_OPERATIONS_CAPABILITY)
@@ -1987,7 +2017,7 @@ module DiemFramework::DiemAccount {
                 upgrade_events: Event::new_event_handle<Self::AdminTransactionEvent>(&dr_account),
             }
         );
-        make_account(&dr_account, copy auth_key_prefix) //////// 0L ////////
+        make_account(&dr_account, copy auth_key_prefix); //////// 0L ////////
     }
 
     spec create_diem_root_account {
@@ -2157,6 +2187,44 @@ module DiemFramework::DiemAccount {
     // VASP methods
     ///////////////////////////////////////////////////////////////////////////
 
+    //////// 0L ////////
+    // used for smoketests
+    public fun create_smoketest_end_user_account<Token>(
+        creator_account: &signer,  // TreasuryCompliance
+        new_account_address: address,
+        auth_key_prefix: vector<u8>,
+        _human_name: vector<u8>,
+        add_all_currencies: bool
+    ) acquires AccountOperationsCapability {
+        Testnet::is_testnet();
+        CoreAddresses::assert_diem_root(creator_account);
+        let new_account = create_signer(new_account_address);
+        print(&400001);
+        // Roles::new_parent_vasp_role(creator_account, &new_account);
+        // VASP::publish_parent_vasp_credential(&new_account, creator_account);
+        // DualAttestation::publish_credential(&new_account, creator_account, human_name);
+        // VASPDomain::publish_vasp_domains(&new_account);
+        Roles::new_user_role_with_proof(&new_account);
+        make_account(&new_account, auth_key_prefix);
+        print(&400002);
+        add_currencies_for_account<Token>(&new_account, add_all_currencies);
+        print(&400003);
+
+        // testnet_root_fund_account
+        // spec {
+        //     assert exists<VASPDomain::VASPDomains>(Signer::address_of(new_account));
+        //     assert Roles::spec_has_treasury_compliance_role_addr(Signer::address_of(creator_account));
+        // }
+    }
+
+
+    // WARNING: DANGER: Mint capability from transaction.
+    // fun testnet_root_fund_account(root: &signer, account: address, coins: u64): Diem<GAS> {
+    //   Testnet::assert_testnet();
+    //   CoreAddresses::assert_root();
+    //   Diem::mint<GAS>(root, coins)
+
+    // }
     /// Create an account with the ParentVASP role at `new_account_address` with authentication key
     /// `auth_key_prefix` | `new_account_address`.  If `add_all_currencies` is true, 0 balances for
     /// all available currencies in the system will also be added.
@@ -2164,21 +2232,28 @@ module DiemFramework::DiemAccount {
         creator_account: &signer,  // TreasuryCompliance
         new_account_address: address,
         auth_key_prefix: vector<u8>,
-        human_name: vector<u8>,
+        _human_name: vector<u8>,
         add_all_currencies: bool
     ) acquires AccountOperationsCapability {
-        Roles::assert_treasury_compliance(creator_account);
+        Testnet::is_testnet();
+        CoreAddresses::assert_diem_root(creator_account);
         let new_account = create_signer(new_account_address);
-        Roles::new_parent_vasp_role(creator_account, &new_account);
-        VASP::publish_parent_vasp_credential(&new_account, creator_account);
-        DualAttestation::publish_credential(&new_account, creator_account, human_name);
-        VASPDomain::publish_vasp_domains(&new_account);
+        print(&400001);
+        // Roles::new_parent_vasp_role(creator_account, &new_account);
+        // VASP::publish_parent_vasp_credential(&new_account, creator_account);
+        // DualAttestation::publish_credential(&new_account, creator_account, human_name);
+        // VASPDomain::publish_vasp_domains(&new_account);
+        Roles::new_user_role_with_proof(&new_account);
         make_account(&new_account, auth_key_prefix);
+        print(&400002);
         add_currencies_for_account<Token>(&new_account, add_all_currencies);
-        spec {
-            assert exists<VASPDomain::VASPDomains>(Signer::address_of(new_account));
-            assert Roles::spec_has_treasury_compliance_role_addr(Signer::address_of(creator_account));
-        }
+        print(&400003);
+
+        // testnet_root_fund_account
+        // spec {
+        //     assert exists<VASPDomain::VASPDomains>(Signer::address_of(new_account));
+        //     assert Roles::spec_has_treasury_compliance_role_addr(Signer::address_of(creator_account));
+        // }
     }
 
     spec create_parent_vasp_account {
@@ -3398,9 +3473,8 @@ module DiemFramework::DiemAccount {
         to_deposit: Diem<Token>,
         metadata: vector<u8>,
         metadata_signature: vector<u8>
-    ) acquires DiemAccount, Balance, AccountOperationsCapability, CumulativeDeposits { //////// 0L ////////
-        let sender = Signer::address_of(vm);
-        assert!(sender == @DiemRoot, 4010);
+    ) acquires DiemAccount, Balance, CumulativeDeposits { //////// 0L ////////
+        CoreAddresses::assert_diem_root(vm);
         deposit(
             @DiemRoot,
             payee,
